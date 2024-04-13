@@ -6,8 +6,28 @@ from httpx import AsyncClient
 from nonebot import logger, on_command
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.params import CommandArg
+from nonebot.plugin import PluginMetadata
 
 from .utils import headers, json_for_t2i
+
+__version__ = "0.0.2"
+
+__plugin_meta__ = PluginMetadata(
+    name="nonebot-plugin-nai3",
+    description="通过 NovelAI 生成图片",
+    usage="通过 NovelAI 生成图片",
+    homepage="https://github.com/zhulinyv/nonebot_plugin_nai3",
+    type="library",
+    supported_adapters={
+        "~onebot.v11",
+        "~onebot.v12",
+    },
+    extra={
+        "author": "zhulinyv",
+        "version": __version__,
+    },
+)
+
 
 nai3 = on_command("nai3", aliases={"nai"}, priority=30, block=True)
 

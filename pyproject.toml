@@ -11,6 +11,7 @@ packages = [{include = "nonebot_plugin_nai3"}]
 python = "^3.9"
 nonebot2 = "^2.2.1"
 httpx = "^0.24.1"
+nonebot-adapter-onebot = "^2.2.3"
 
 # https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html
 [tool.black]
