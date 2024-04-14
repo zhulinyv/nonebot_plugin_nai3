@@ -8,6 +8,7 @@ class Config(BaseModel):
     nai3_limit: int = 10
     nai3_cooltime_group: int = 30
     nai3_cooltime_user: int = 300
+    nai3_proxy: str = None
 
 
 nai3_config = get_plugin_config(Config)

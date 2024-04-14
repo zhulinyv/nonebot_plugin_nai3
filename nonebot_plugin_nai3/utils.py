@@ -50,6 +50,14 @@ json_for_t2i = {
     },
 }
 
+try:
+    proxies = {
+        "http://": "http://" + nai3_config.nai3_proxy,
+        "https://": "http://" + nai3_config.nai3_proxy,
+    }
+except Exception:
+    proxies = None
+
 
 def list_to_str(str_list: list):
     empty_str = ""

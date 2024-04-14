@@ -71,6 +71,7 @@
 | nai3_limit | 否 | int | 10 | 每人最多生成次数 |
 | nai3_cooltime_group | 否 | int | 30 | 群聊画图冷却时间(单位: 秒) |
 | nai3_cooltime_user | 否 | int | 300 | 个人画图冷却时间(单位: 秒) |
+| nai3_proxy | 否 | str | None | 代理 |
 
 ⚠️ token 的获取:
 

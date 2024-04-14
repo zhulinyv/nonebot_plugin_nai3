@@ -18,7 +18,7 @@ from nonebot.plugin.on import on_command, on_shell_command
 from nonebot.rule import ArgumentParser
 
 from .config import Config, nai3_config
-from .utils import format_str, get_at, headers, json_for_t2i, list_to_str
+from .utils import format_str, get_at, headers, json_for_t2i, list_to_str, proxies
 
 ADMIN = SUPERUSER | GROUP_ADMIN | GROUP_OWNER
 
@@ -129,11 +129,11 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     logger.debug(json_for_t2i)
 
     try:
-        async with AsyncClient() as client:
-            response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=300)
+        async with AsyncClient(proxies=proxies if nai3_config.nai3_proxy else None) as client:
+            response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500)
             while response.status_code == 429:
                 await asyncio.sleep(random.randint(4, 8))
-                response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=300)
+                response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500)
                 logger.debug(response.status_code)
             logger.debug("<<<<<")
             with zipfile.ZipFile(io.BytesIO(response.content), mode="r") as zip:
