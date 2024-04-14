@@ -47,3 +47,20 @@ json_for_t2i = {
         "reference_strength_multiple": [],
     },
 }
+
+
+def list_to_str(str_list: list):
+    empty_str = ""
+    for i in str_list:
+        if i[-1] == ",":
+            empty_str += f"{i}"
+        else:
+            empty_str += f"{i},"
+    return empty_str
+
+
+def format_str(str_: str):
+    str_ = str_.replace(", ", ",")
+    str_ = str_.replace(",", ", ")
+    str_ = str_[:-2] if str_[-2:] == ", " else str_
+    return str_

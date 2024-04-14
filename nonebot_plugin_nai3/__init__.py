@@ -13,9 +13,9 @@ from nonebot.plugin.on import on_shell_command
 from nonebot.rule import ArgumentParser
 
 from .config import Config, nai3_config
-from .utils import headers, json_for_t2i
+from .utils import format_str, headers, json_for_t2i, list_to_str
 
-__version__ = "0.0.4"
+__version__ = "0.0.6"
 
 __plugin_meta__ = PluginMetadata(
     name="nonebot-plugin-nai3",
@@ -36,8 +36,8 @@ __plugin_meta__ = PluginMetadata(
 
 
 nai3_parser = ArgumentParser()
-nai3_parser.add_argument("prompt", help="提示词(支持你喜欢的画风串)", type=str)
-nai3_parser.add_argument("-n", "--negative", help="负面提示词", type=str, dest="negative")
+nai3_parser.add_argument("prompt", nargs="*", help="提示词(支持你喜欢的画风串)", type=str)
+nai3_parser.add_argument("-n", "--negative", nargs="*", help="负面提示词", type=str, dest="negative")
 nai3_parser.add_argument("-r", "--resolution", help="画布形状/分辨率", type=str, dest="resolution")
 nai3_parser.add_argument("-s", "--scale", help="提示词相关性", type=float, dest="scale")
 nai3_parser.add_argument("-sm", help="sm", type=bool, dest="sm")
@@ -76,7 +76,7 @@ async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
 
     await nai3.send("脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True)
 
-    json_for_t2i["input"] = args.prompt
+    json_for_t2i["input"] = format_str(list_to_str(args.prompt))
     resolution = args.resolution if args.resolution else "mb"
     if resolution == "mb":
         width = 832
@@ -98,7 +98,7 @@ async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
     json_for_t2i["parameters"]["noise_schedule"] = args.schedule if args.schedule else "native"
     seed = random.randint(1000000000, 9999999999)
     json_for_t2i["parameters"]["seed"] = seed
-    json_for_t2i["parameters"]["negative_prompt"] = args.negative if args.negative else nai3_config.nai3_negative
+    json_for_t2i["parameters"]["negative_prompt"] = format_str(list_to_str(args.negative)) if args.negative else nai3_config.nai3_negative
 
     logger.debug(">>>>>")
     logger.debug(json_for_t2i)
