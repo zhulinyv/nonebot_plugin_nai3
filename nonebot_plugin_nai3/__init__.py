@@ -1,3 +1,4 @@
+import asyncio
 import io
 import random
 import time
@@ -106,7 +107,10 @@ async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
     try:
         async with AsyncClient() as client:
             response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=300)
-            logger.debug(response.status_code)
+            while response.status_code == 429:
+                await asyncio.sleep(random.randint(4, 8))
+                response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=300)
+                logger.debug(response.status_code)
             logger.debug("<<<<<")
             with zipfile.ZipFile(io.BytesIO(response.content), mode="r") as zip:
                 with zip.open("image_0.png") as image:
