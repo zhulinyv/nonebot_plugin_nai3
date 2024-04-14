@@ -87,14 +87,17 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     try:
         cd[gid]["user"][uid]["limit"]
     except KeyError:
-        cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {uid: {"limit": nai3_config.nai3_limit, "cool_time": now_time - nai3_config.nai3_cooltime_user}}}
+        cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {uid: {"limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit, "cool_time": now_time - nai3_config.nai3_cooltime_user}}}
 
-    if now_time - cd[gid]["cool_time"] < nai3_config.nai3_cooltime_group:
-        await nai3.finish("群聊绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
-    if now_time - cd[gid]["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
-        await nai3.finish("个人绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
-    if cd[gid]["user"][uid]["limit"] <= 0:
-        await nai3.finish("今天已经没次数了哦~", at_send=True)
+    if event.get_user_id() not in bot.config.superusers:
+        logger.debug(event.get_user_id())
+        logger.debug(bot.config.superusers)
+        if now_time - cd[gid]["cool_time"] < nai3_config.nai3_cooltime_group:
+            await nai3.finish("群聊绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
+        if now_time - cd[gid]["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
+            await nai3.finish("个人绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
+        if cd[gid]["user"][uid]["limit"] <= 0:
+            await nai3.finish("今天已经没次数了哦~", at_send=True)
 
     await nai3.send("脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True)
 
@@ -137,7 +140,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                 with zip.open("image_0.png") as image:
                     now_time = time.time()
                     cd[gid]["cool_time"] = now_time
-                    cd[gid]["user"][uid]["limit"] = cd[gid]["user"][uid]["limit"] - 1
+                    cd[gid]["user"][uid]["limit"] = 999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
                     cd[gid]["user"][uid]["cool_time"] = now_time
                     await nai3.send(f"种子: {seed}\n" + MessageSegment.image(image.read()), at_sender=True)
                     return
