@@ -1,22 +1,31 @@
 import asyncio
 import io
+import os
 import random
 import time
 import zipfile
 from argparse import Namespace
+from importlib.metadata import version
 
+import ujson as json
 from httpx import AsyncClient
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent, MessageSegment, PrivateMessageEvent
+from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER, Bot, GroupMessageEvent, Message, MessageEvent, MessageSegment, PrivateMessageEvent
 from nonebot.log import logger
-from nonebot.params import ShellCommandArgs
+from nonebot.params import CommandArg, ShellCommandArgs
+from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
-from nonebot.plugin.on import on_shell_command
+from nonebot.plugin.on import on_command, on_shell_command
 from nonebot.rule import ArgumentParser
 
 from .config import Config, nai3_config
-from .utils import format_str, headers, json_for_t2i, list_to_str
+from .utils import format_str, get_at, headers, json_for_t2i, list_to_str
 
-__version__ = "0.0.6"
+ADMIN = SUPERUSER | GROUP_ADMIN | GROUP_OWNER
+
+try:
+    __version__ = version("nonebot_plugin_nai3")
+except Exception:
+    __version__ = "0.0.0"
 
 __plugin_meta__ = PluginMetadata(
     name="nonebot-plugin-nai3",
@@ -46,14 +55,15 @@ nai3_parser.add_argument("-smdyn", help="smdyn", type=bool, dest="smdyn")
 nai3_parser.add_argument("--sampler", help="采样器", type=str, dest="sampler")
 nai3_parser.add_argument("--schedule", help="噪声计划表", type=str, dest="schedule")
 
-nai3 = on_shell_command("nai3", aliases={"nai"}, parser=nai3_parser, priority=30, block=True)
 
+nai3 = on_shell_command("nai3", aliases={"nai"}, parser=nai3_parser, priority=30, block=True)
+nai3_black = on_command("nai3黑名单", aliases={"nai3 黑名单", "nai黑名单", "nai 黑名单"}, priority=20, permission=ADMIN, block=True)
 
 cd = {}
 
 
 @nai3.handle()
-async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
+async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs()):
     if isinstance(event, PrivateMessageEvent):
         gid = uid = str(event.user_id)
     elif isinstance(event, GroupMessageEvent):
@@ -61,6 +71,17 @@ async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
         uid = str(event.user_id)
     else:
         await nai3.send("不支持该聊天捏~请切换至群聊或私聊重试!", at_sender=True)
+
+    try:
+        with open("./data/nai3/black_data.json", "r") as f:
+            black_data = json.load(f)
+        if event.get_user_id() not in bot.config.superusers:
+            if gid in black_data["group"]:
+                await nai3.finish("当前群聊在画图黑名单中!", at_sender=True)
+            if uid in black_data["user"]:
+                await nai3.finish("你在画图黑名单中!", at_sender=True)
+    except FileNotFoundError:
+        pass
 
     now_time = time.time()
     try:
@@ -122,3 +143,39 @@ async def _(event: MessageEvent, args: Namespace = ShellCommandArgs()):
                     return
     except Exception as e:
         await nai3.finish(f"出现错误: {e}", at_sender=True)
+
+
+@nai3_black.handle()
+async def _(event: MessageEvent, msg: Message = CommandArg()):
+    text_msg = msg.extract_plain_text().strip()
+    id = await get_at(event)
+    if id == -1:
+        id = text_msg.replace("添加", "").replace("删除", "").replace("群聊", "").replace("用户", "")
+
+    if not os.path.exists("./data/nai3"):
+        os.makedirs("./data/nai3")
+        black_data = {"user": [], "group": []}
+        with open("./data/nai3/black_data.json", "w", encoding="utf-8") as f:
+            json.dump(black_data, f, indent=4, ensure_ascii=False)
+
+    with open("./data/nai3/black_data.json", "r") as f:
+        black_data = json.load(f)
+    if "添加" in text_msg:
+        if "群聊" in text_msg:
+            black_data["group"].append(str(id))
+        elif "用户" in text_msg:
+            black_data["user"].append(str(id))
+        else:
+            await nai3_black.finish("输入有误!", at_sender=True)
+        action_msg = "添加成功!"
+    if "删除" in text_msg:
+        if "群聊" in text_msg:
+            black_data["group"].remove(str(id))
+        elif "用户" in text_msg:
+            black_data["user"].remove(str(id))
+        else:
+            await nai3_black.finish("输入有误!", at_sender=True)
+        action_msg = "删除成功!"
+    with open("./data/nai3/black_data.json", "w", encoding="utf-8") as f:
+        json.dump(black_data, f, indent=4, ensure_ascii=False)
+    await nai3_black.finish(action_msg, at_sender=True)

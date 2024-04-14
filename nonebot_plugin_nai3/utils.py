@@ -1,3 +1,5 @@
+from nonebot.adapters.onebot.v11 import GroupMessageEvent
+
 from .config import nai3_config
 
 headers = {
@@ -64,3 +66,11 @@ def format_str(str_: str):
     str_ = str_.replace(",", ", ")
     str_ = str_[:-2] if str_[-2:] == ", " else str_
     return str_
+
+
+async def get_at(event: GroupMessageEvent) -> int:
+    msg = event.get_message()
+    for msg_seg in msg:
+        if msg_seg.type == "at":
+            return -1 if msg_seg.data["qq"] == "all" else int(msg_seg.data["qq"])
+    return -1
