@@ -22,7 +22,7 @@ __plugin_meta__ = PluginMetadata(
     description="通过 NovelAI 生成图片",
     usage="通过 NovelAI 生成图片",
     homepage="https://github.com/zhulinyv/nonebot_plugin_nai3",
-    type="library",
+    type="application",
     supported_adapters={
         "~onebot.v11",
         "~onebot.v12",
