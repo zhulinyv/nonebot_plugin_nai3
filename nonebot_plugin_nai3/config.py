@@ -1,8 +1,8 @@
-from nonebot import get_driver
-from pydantic import BaseModel, Extra
+from nonebot.plugin import get_plugin_config
+from pydantic import BaseModel
 
 
-class Config(BaseModel, extra=Extra.ignore):
+class Config(BaseModel):
     nai3_token: str = "xxx"
     nai3_negative: str = "nsfw, lowres, {bad}, error, fewer, extra, missing, worst quality, jpeg artifacts, bad quality, watermark, unfinished, displeasing, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]"
     nai3_limit: int = 10
@@ -10,4 +10,4 @@ class Config(BaseModel, extra=Extra.ignore):
     nai3_cooltime_user: int = 300
 
 
-nai3_config = Config.parse_obj(get_driver().config.dict())
+nai3_config = get_plugin_config(Config)

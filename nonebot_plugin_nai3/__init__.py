@@ -5,13 +5,14 @@ import zipfile
 from argparse import Namespace
 
 from httpx import AsyncClient
-from nonebot import logger, on_shell_command
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent, MessageSegment, PrivateMessageEvent
+from nonebot.log import logger
 from nonebot.params import ShellCommandArgs
 from nonebot.plugin import PluginMetadata
+from nonebot.plugin.on import on_shell_command
 from nonebot.rule import ArgumentParser
 
-from .config import nai3_config
+from .config import Config, nai3_config
 from .utils import headers, json_for_t2i
 
 __version__ = "0.0.4"
@@ -26,6 +27,7 @@ __plugin_meta__ = PluginMetadata(
         "~onebot.v11",
         "~onebot.v12",
     },
+    config=Config,
     extra={
         "author": "zhulinyv",
         "version": __version__,
