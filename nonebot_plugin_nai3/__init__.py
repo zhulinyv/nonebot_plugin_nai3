@@ -30,13 +30,10 @@ except Exception:
 __plugin_meta__ = PluginMetadata(
     name="nonebot-plugin-nai3",
     description="通过 NovelAI 生成图片",
-    usage="通过 NovelAI 生成图片",
+    usage="nai3/nai prompt args",
     homepage="https://github.com/zhulinyv/nonebot_plugin_nai3",
     type="application",
-    supported_adapters={
-        "~onebot.v11",
-        "~onebot.v12",
-    },
+    supported_adapters={"~onebot.v11"},
     config=Config,
     extra={
         "author": "zhulinyv",
