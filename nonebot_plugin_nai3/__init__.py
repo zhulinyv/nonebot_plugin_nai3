@@ -219,9 +219,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                     ]:
                         safe = "R18"
                 if safe == "R18":
-                    await nai3.send(
-                        "图片已生成, 但检测到 R18 内容! 不可以涩涩!! 人家要火速告诉主人去!!!", at_sender=True
-                    )
+                    await nai3.send("图片已生成, 但检测到 R18 内容! 不可以涩涩!! 脑积水要告诉主人去!!!", at_sender=True)
                     if nai3_config.smms_token:
                         file = await smms.upload(Path("./data/nai3/temp.png"))
                         for superuser in bot.config.superusers:
@@ -234,7 +232,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                             )
                             asyncio.sleep(3)
                     return
-            await nai3.send(f"种子: {seed}\n" + MessageSegment.image("./data/nai3/temp.png"), at_sender=True)
+            await nai3.send(f"种子: {seed}\n" + MessageSegment.image(Path("./data/nai3/temp.png")), at_sender=True)
             return
     except Exception as e:
         await nai3.finish(f"出现错误: {e}", at_sender=True)
