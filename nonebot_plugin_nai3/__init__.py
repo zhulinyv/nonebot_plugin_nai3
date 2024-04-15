@@ -124,14 +124,14 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
         logger.debug(bot.config.superusers)
         if now_time - cd[gid]["cool_time"] < nai3_config.nai3_cooltime_group:
             await nai3.finish(
-                "群聊绘画冷却中, 剩余时间: {}...".format(
+                "群聊绘画冷却中, 剩余时间: {} 秒...".format(
                     round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)
                 ),
                 at_sender=True,
             )
         if now_time - cd[gid]["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
             await nai3.finish(
-                "个人绘画冷却中, 剩余时间: {}...".format(
+                "个人绘画冷却中, 剩余时间: {} 秒...".format(
                     round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)
                 ),
                 at_sender=True,
@@ -213,14 +213,16 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                     ]:
                         safe = "R18"
                 if safe == "R18":
-                    await nai3.send("检测到 R18 内容, 不可以涩涩!", at_sender=True)
+                    await nai3.send(
+                        "图片已生成, 但检测到 R18 内容! 不可以涩涩!! 人家要火速告诉主人去!!", at_sender=True
+                    )
                     if nai3_config.smms_token:
                         file = await smms.upload(Path("./data/nai3/temp.png"))
                         for superuser in bot.config.superusers:
                             await bot.call_api(
                                 "send_msg",
                                 **{
-                                    "message": file.url,
+                                    "message": f"群: {gid}, 用户: {uid}, 画了一张涩图!\n{file.url}",
                                     "user_id": superuser,
                                 },
                             )
