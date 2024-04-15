@@ -6,13 +6,16 @@ import time
 import zipfile
 from argparse import Namespace
 from importlib.metadata import version
+from pathlib import Path
 
 import ujson as json
 from httpx import AsyncClient
+from nonebot import require
 from nonebot.adapters.onebot.v11 import (
     GROUP_ADMIN,
     GROUP_OWNER,
     Bot,
+    Event,
     GroupMessageEvent,
     Message,
     MessageEvent,
@@ -25,11 +28,17 @@ from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 from nonebot.plugin.on import on_command, on_shell_command
 from nonebot.rule import ArgumentParser
+from nudenet import NudeDetector
 
 from .config import Config, nai3_config
 from .utils import format_str, get_at, headers, json_for_t2i, list_to_str, proxies
 
+require("nonebot_plugin_smms")
+from nonebot_plugin_smms import SMMS  # noqa: E402, F401
+
 ADMIN = SUPERUSER | GROUP_ADMIN | GROUP_OWNER
+nude_detector = NudeDetector()
+smms = SMMS()
 
 try:
     __version__ = version("nonebot_plugin_nai3")
@@ -66,12 +75,14 @@ nai3 = on_shell_command("nai3", aliases={"nai"}, parser=nai3_parser, priority=30
 nai3_black = on_command(
     "nai3黑名单", aliases={"nai3 黑名单", "nai黑名单", "nai 黑名单"}, priority=20, permission=ADMIN, block=True
 )
+nai3_help = on_command("nai3帮助", aliases={"nai3 帮助", "nai帮助", "nai 帮助"}, priority=25, block=True)
 
 cd = {}
 
 
 @nai3.handle()
 async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs()):
+    # 获取群号和 QQ 号
     if isinstance(event, PrivateMessageEvent):
         gid = uid = str(event.user_id)
     elif isinstance(event, GroupMessageEvent):
@@ -80,6 +91,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     else:
         await nai3.send("不支持该聊天捏~请切换至群聊或私聊重试!", at_sender=True)
 
+    # 读取黑名单并判断
     try:
         with open("./data/nai3/black_data.json", "r") as f:
             black_data = json.load(f)
@@ -91,6 +103,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     except FileNotFoundError:
         pass
 
+    # 更新冷却时间和次数
     now_time = time.time()
     try:
         cd[gid]["user"][uid]["limit"]
@@ -105,6 +118,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
             },
         }
 
+    # 判断冷却时间并阻断
     if event.get_user_id() not in bot.config.superusers:
         logger.debug(event.get_user_id())
         logger.debug(bot.config.superusers)
@@ -125,6 +139,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
         if cd[gid]["user"][uid]["limit"] <= 0:
             await nai3.finish("今天已经没次数了哦~", at_send=True)
 
+    # 组装 json 数据
     await nai3.send(
         "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True
     )
@@ -158,12 +173,17 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     logger.debug(">>>>>")
     logger.debug(json_for_t2i)
 
+    now_time = time.time()
+    cd[gid]["cool_time"] = now_time
+    cd[gid]["user"][uid]["cool_time"] = now_time
+
     try:
+        # 生成图片
         async with AsyncClient(proxies=proxies if nai3_config.nai3_proxy else None) as client:
             response = await client.post(
                 "https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500
             )
-            while response.status_code == 429:
+            while response.status_code in [429, 500]:
                 await asyncio.sleep(random.randint(4, 8))
                 response = await client.post(
                     "https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500
@@ -172,14 +192,42 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
             logger.debug("<<<<<")
             with zipfile.ZipFile(io.BytesIO(response.content), mode="r") as zip:
                 with zip.open("image_0.png") as image:
-                    now_time = time.time()
-                    cd[gid]["cool_time"] = now_time
-                    cd[gid]["user"][uid]["limit"] = (
-                        999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
-                    )
-                    cd[gid]["user"][uid]["cool_time"] = now_time
-                    await nai3.send(f"种子: {seed}\n" + MessageSegment.image(image.read()), at_sender=True)
+                    with open("./data/nai3/temp.png", "wb") as f:
+                        f.write(image.read())
+
+            cd[gid]["user"][uid]["limit"] = (
+                999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
+            )
+
+            # 检测 R18
+            if not nai3_config.nai3_r18:
+                body = nude_detector.detect("./data/nai3/temp.png")
+                safe = "safe"
+                for part in body:
+                    if part["class"] in [
+                        "BUTTOCKS_EXPOSED",
+                        "FEMALE_BREAST_EXPOSED",
+                        "FEMALE_GENITALIA_EXPOSED",
+                        "ANUS_EXPOSED",
+                        "MALE_GENITALIA_EXPOSED",
+                    ]:
+                        safe = "R18"
+                if safe == "R18":
+                    await nai3.send("检测到 R18 内容, 不可以涩涩!", at_sender=True)
+                    if nai3_config.smms_token:
+                        file = await smms.upload(Path("./data/nai3/temp.png"))
+                        for superuser in bot.config.superusers:
+                            await bot.call_api(
+                                "send_msg",
+                                **{
+                                    "message": file.url,
+                                    "user_id": superuser,
+                                },
+                            )
+                            asyncio.sleep(3)
                     return
+            await nai3.send(f"种子: {seed}\n" + MessageSegment.image("./data/nai3/temp.png"), at_sender=True)
+            return
     except Exception as e:
         await nai3.finish(f"出现错误: {e}", at_sender=True)
 
@@ -218,3 +266,44 @@ async def _(event: MessageEvent, msg: Message = CommandArg()):
     with open("./data/nai3/black_data.json", "w", encoding="utf-8") as f:
         json.dump(black_data, f, indent=4, ensure_ascii=False)
     await nai3_black.finish(action_msg, at_sender=True)
+
+
+@nai3_help.handle()
+async def _(bot: Bot, event: Event):
+    msgs = []
+    message_list = []
+    message_list.append(
+        """指令: nai3/nai
+参数:
+prompt          提示词(支持你喜欢的画风串), 默认: None
+-n/--negative   负面提示词, 默认: nsfw,...
+-r/--resolution 画布形状/分辨率, ["mb", "pc", "sq"] 三选一, 默认: mb
+-s/--scale      提示词相关性, 默认: 5.0
+-sm             sm, 默认: False
+-smdyn          smdyn, 默认: False
+--sampler       采样器, 默认: k_euler
+--schedule      噪声计划表, 默认: native
+示例: nai3 1girl, loli, cute -r mb -s 5.0"""
+    )
+    message_list.append(MessageSegment.image("https://github.com/zhulinyv/nonebot_plugin_nai3/raw/main/img/1.png"))
+    message_list.append(
+        """指令: nai3黑名单/nai黑名单(需要超级用户, 群主或群管理员权限)
+参数:
+添加    添加黑名单
+删除    删除黑名单
+用户    指定添加类型
+群聊    指定添加类型
+群号/QQ号/@sb.
+示例: nai3黑名单添加用户 @脑积水"""
+    )
+    message_list.append(MessageSegment.image("https://github.com/zhulinyv/nonebot_plugin_nai3/raw/main/img/2.png"))
+    message_list.append("指令: nai3帮助\n返回: 展示以上帮助")
+    if isinstance(event, GroupMessageEvent):
+        for msg in message_list:
+            msgs.append({"type": "node", "data": {"name": "脑积水", "uin": bot.self_id, "content": msg}})
+        await bot.call_api("send_group_forward_msg", group_id=event.group_id, messages=msgs)
+    else:
+        for msg in message_list:
+            await nai3_help.send(msg)
+            await asyncio.sleep(0.5)
+        return

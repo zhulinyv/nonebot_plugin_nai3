@@ -72,6 +72,8 @@
 | nai3_cooltime_group | 否 | int | 30 | 群聊画图冷却时间(单位: 秒) |
 | nai3_cooltime_user | 否 | int | 300 | 个人画图冷却时间(单位: 秒) |
 | nai3_proxy | 否 | str | None | 代理 |
+| SMMS_API_URL | 否 | str | "https://sm.ms/api/v2" | SMMS 图床 API 地址 |
+| SMMS_TOKEN | 否 | str | None | 不配置将损失一张 R18 图片(bushi) |
 
 ⚠️ token 的获取:
 
@@ -79,6 +81,14 @@
 - 2.F12 打开控制台并切换到控制台
 - 3.输入 `console.log(JSON.parse(localStorage.session).auth_token)` 回车, 返回的字符串即为 token
 - ![e3756ce75c6f6850efa633dbaa3a5ae6](https://github.com/zhulinyv/Semi-Auto-NovelAI-to-Pixiv/assets/66541860/502c9a49-6a73-446d-9401-e559628ad079)
+
+⚠️ SMMS token 的获取:
+
+- 登录SM.MS"
+- 点击"Sign Up"注册一个账号"
+- 输入账号邮箱和密码"
+- 点击"User" > "Dashboard""
+- 点击"API Token", 就可以看到Token, 复制即可使用"
 
 ## 🎉 使用
 
@@ -113,6 +123,11 @@
 
 ![img](./img/2.png)
 
+```
+指令: nai3帮助/nai帮助
+返回: 展示以上帮助
+```
+
 ## 📖 待办
 
 + [x] 文生图
@@ -123,14 +138,18 @@
 + [x] 上限功能
 + [x] 黑名单功能
 + [x] 代理
-+ [ ] R18 检测
++ [x] R18 检测
 + [ ] 翻译
-+ [ ] 帮助指令
++ [x] 帮助指令
++ [x] 检测到 R18 图片生成链接并上报超级用户
++ [ ] 图片保存
 + [ ] ...
 
 ## 🤝 鸣谢
 
-本项目逐步迁移自 [Semi-Auto-NovelAI-to-Pixiv](https://github.com/zhulinyv/Semi-Auto-NovelAI-to-Pixiv) 
+本项目逐步迁移自 [Semi-Auto-NovelAI-to-Pixiv](https://github.com/zhulinyv/Semi-Auto-NovelAI-to-Pixiv)
+
+本项目使用 [nonebot-plugin-smms](https://github.com/mobyw/nonebot-plugin-smms) 上传图片
 
 
 <hr>
