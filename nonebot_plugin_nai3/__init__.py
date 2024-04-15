@@ -9,7 +9,16 @@ from importlib.metadata import version
 
 import ujson as json
 from httpx import AsyncClient
-from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER, Bot, GroupMessageEvent, Message, MessageEvent, MessageSegment, PrivateMessageEvent
+from nonebot.adapters.onebot.v11 import (
+    GROUP_ADMIN,
+    GROUP_OWNER,
+    Bot,
+    GroupMessageEvent,
+    Message,
+    MessageEvent,
+    MessageSegment,
+    PrivateMessageEvent,
+)
 from nonebot.log import logger
 from nonebot.params import CommandArg, ShellCommandArgs
 from nonebot.permission import SUPERUSER
@@ -54,7 +63,9 @@ nai3_parser.add_argument("--schedule", help="噪声计划表", type=str, dest="s
 
 
 nai3 = on_shell_command("nai3", aliases={"nai"}, parser=nai3_parser, priority=30, block=True)
-nai3_black = on_command("nai3黑名单", aliases={"nai3 黑名单", "nai黑名单", "nai 黑名单"}, priority=20, permission=ADMIN, block=True)
+nai3_black = on_command(
+    "nai3黑名单", aliases={"nai3 黑名单", "nai黑名单", "nai 黑名单"}, priority=20, permission=ADMIN, block=True
+)
 
 cd = {}
 
@@ -84,19 +95,39 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     try:
         cd[gid]["user"][uid]["limit"]
     except KeyError:
-        cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {uid: {"limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit, "cool_time": now_time - nai3_config.nai3_cooltime_user}}}
+        cd[gid] = {
+            "cool_time": now_time - nai3_config.nai3_cooltime_group,
+            "user": {
+                uid: {
+                    "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
+                    "cool_time": now_time - nai3_config.nai3_cooltime_user,
+                }
+            },
+        }
 
     if event.get_user_id() not in bot.config.superusers:
         logger.debug(event.get_user_id())
         logger.debug(bot.config.superusers)
         if now_time - cd[gid]["cool_time"] < nai3_config.nai3_cooltime_group:
-            await nai3.finish("群聊绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
+            await nai3.finish(
+                "群聊绘画冷却中, 剩余时间: {}...".format(
+                    round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)
+                ),
+                at_sender=True,
+            )
         if now_time - cd[gid]["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
-            await nai3.finish("个人绘画冷却中, 剩余时间: {}...".format(round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)), at_sender=True)
+            await nai3.finish(
+                "个人绘画冷却中, 剩余时间: {}...".format(
+                    round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)
+                ),
+                at_sender=True,
+            )
         if cd[gid]["user"][uid]["limit"] <= 0:
             await nai3.finish("今天已经没次数了哦~", at_send=True)
 
-    await nai3.send("脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True)
+    await nai3.send(
+        "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True
+    )
 
     json_for_t2i["input"] = format_str(list_to_str(args.prompt))
     resolution = args.resolution if args.resolution else "mb"
@@ -120,24 +151,32 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     json_for_t2i["parameters"]["noise_schedule"] = args.schedule if args.schedule else "native"
     seed = random.randint(1000000000, 9999999999)
     json_for_t2i["parameters"]["seed"] = seed
-    json_for_t2i["parameters"]["negative_prompt"] = format_str(list_to_str(args.negative)) if args.negative else nai3_config.nai3_negative
+    json_for_t2i["parameters"]["negative_prompt"] = (
+        format_str(list_to_str(args.negative)) if args.negative else nai3_config.nai3_negative
+    )
 
     logger.debug(">>>>>")
     logger.debug(json_for_t2i)
 
     try:
         async with AsyncClient(proxies=proxies if nai3_config.nai3_proxy else None) as client:
-            response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500)
+            response = await client.post(
+                "https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500
+            )
             while response.status_code == 429:
                 await asyncio.sleep(random.randint(4, 8))
-                response = await client.post("https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500)
+                response = await client.post(
+                    "https://image.novelai.net/ai/generate-image", json=json_for_t2i, headers=headers, timeout=500
+                )
                 logger.debug(response.status_code)
             logger.debug("<<<<<")
             with zipfile.ZipFile(io.BytesIO(response.content), mode="r") as zip:
                 with zip.open("image_0.png") as image:
                     now_time = time.time()
                     cd[gid]["cool_time"] = now_time
-                    cd[gid]["user"][uid]["limit"] = 999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
+                    cd[gid]["user"][uid]["limit"] = (
+                        999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
+                    )
                     cd[gid]["user"][uid]["cool_time"] = now_time
                     await nai3.send(f"种子: {seed}\n" + MessageSegment.image(image.read()), at_sender=True)
                     return
