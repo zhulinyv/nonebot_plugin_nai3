@@ -71,7 +71,8 @@
 | nai3_limit | 否 | int | 10 | 每人最多生成次数 |
 | nai3_cooltime_group | 否 | int | 30 | 群聊画图冷却时间(单位: 秒) |
 | nai3_cooltime_user | 否 | int | 300 | 个人画图冷却时间(单位: 秒) |
-| nai3_proxy | 否 | str | None | 代理 |
+| nai3_proxy | 否 | str | None | post 请求生成图片使用的代理 |
+| nai3_r18 | 否 | bool | False | 是否允许 R18 图片(False 将会把图片链接发给超级用户) |
 | SMMS_API_URL | 否 | str | "https://sm.ms/api/v2" | SMMS 图床 API 地址 |
 | SMMS_TOKEN | 否 | str | None | 不配置将损失一张 R18 图片(bushi) |
 
