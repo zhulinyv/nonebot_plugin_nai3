@@ -60,6 +60,12 @@ __plugin_meta__ = PluginMetadata(
 )
 
 
+if not os.path.exists("./data/nai3"):
+    os.makedirs("./data/nai3")
+    black_data = {"user": [], "group": []}
+    with open("./data/nai3/black_data.json", "w", encoding="utf-8") as f:
+        json.dump(black_data, f, indent=4, ensure_ascii=False)
+
 nai3_parser = ArgumentParser()
 nai3_parser.add_argument("prompt", nargs="*", help="提示词(支持你喜欢的画风串)", type=str)
 nai3_parser.add_argument("-n", "--negative", nargs="*", help="负面提示词", type=str, dest="negative")
@@ -214,7 +220,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                         safe = "R18"
                 if safe == "R18":
                     await nai3.send(
-                        "图片已生成, 但检测到 R18 内容! 不可以涩涩!! 人家要火速告诉主人去!!", at_sender=True
+                        "图片已生成, 但检测到 R18 内容! 不可以涩涩!! 人家要火速告诉主人去!!!", at_sender=True
                     )
                     if nai3_config.smms_token:
                         file = await smms.upload(Path("./data/nai3/temp.png"))
@@ -240,12 +246,6 @@ async def _(event: MessageEvent, msg: Message = CommandArg()):
     id = await get_at(event)
     if id == -1:
         id = text_msg.replace("添加", "").replace("删除", "").replace("群聊", "").replace("用户", "")
-
-    if not os.path.exists("./data/nai3"):
-        os.makedirs("./data/nai3")
-        black_data = {"user": [], "group": []}
-        with open("./data/nai3/black_data.json", "w", encoding="utf-8") as f:
-            json.dump(black_data, f, indent=4, ensure_ascii=False)
 
     with open("./data/nai3/black_data.json", "r") as f:
         black_data = json.load(f)
