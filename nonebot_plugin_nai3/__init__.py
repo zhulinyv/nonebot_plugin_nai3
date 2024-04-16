@@ -2,6 +2,7 @@ import asyncio
 import io
 import os
 import random
+import shutil
 import time
 import zipfile
 from argparse import Namespace
@@ -10,7 +11,6 @@ from pathlib import Path
 
 import ujson as json
 from httpx import AsyncClient
-from nonebot import require
 from nonebot.adapters.onebot.v11 import (
     GROUP_ADMIN,
     GROUP_OWNER,
@@ -25,7 +25,7 @@ from nonebot.adapters.onebot.v11 import (
 from nonebot.log import logger
 from nonebot.params import CommandArg, ShellCommandArgs
 from nonebot.permission import SUPERUSER
-from nonebot.plugin import PluginMetadata
+from nonebot.plugin import PluginMetadata, require
 from nonebot.plugin.on import on_command, on_shell_command
 from nonebot.rule import ArgumentParser
 from nudenet import NudeDetector
@@ -145,11 +145,11 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
         if cd[gid]["user"][uid]["limit"] <= 0:
             await nai3.finish("今天已经没次数了哦~", at_send=True)
 
-    # 组装 json 数据
     await nai3.send(
         "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True
     )
 
+    # 组装 json 数据
     json_for_t2i["input"] = format_str(list_to_str(args.prompt))
     resolution = args.resolution if args.resolution else "mb"
     if resolution == "mb":
@@ -179,6 +179,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     logger.debug(">>>>>")
     logger.debug(json_for_t2i)
 
+    # 更新用户 CD
     now_time = time.time()
     cd[gid]["cool_time"] = now_time
     cd[gid]["user"][uid]["cool_time"] = now_time
@@ -201,6 +202,12 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                     with open("./data/nai3/temp.png", "wb") as f:
                         f.write(image.read())
 
+            # 保存到指定位置
+            if nai3_config.nai3_save:
+                if not os.path.exists(nai3_config.nai3_save_path):
+                    os.makedirs(nai3_config.nai3_save_path)
+                shutil.copyfile("./data/nai3/temp.png", Path(nai3_config.nai3_save_path) / f"{seed}.png")
+
             cd[gid]["user"][uid]["limit"] = (
                 999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
             )
@@ -222,6 +229,8 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                     await nai3.send("图片已生成, 但检测到 R18 内容! 不可以涩涩!! 脑积水要告诉主人去!!!", at_sender=True)
                     if nai3_config.smms_token:
                         file = await smms.upload(Path("./data/nai3/temp.png"))
+                        if nai3_config.nai3_send_to_group:
+                            await nai3.send(f"只..只许这一次给你看看好啦!\n{file.url}", at_sender=True)
                         for superuser in bot.config.superusers:
                             await bot.call_api(
                                 "send_msg",
@@ -230,7 +239,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                                     "user_id": superuser,
                                 },
                             )
-                            asyncio.sleep(3)
+                            asyncio.sleep(1)
                     return
             await nai3.send(f"种子: {seed}\n" + MessageSegment.image(Path("./data/nai3/temp.png")), at_sender=True)
             return
