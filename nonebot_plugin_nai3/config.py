@@ -16,7 +16,7 @@ class Config(BaseModel):
     nai3_save: bool = False
     nai3_save_path: str = "./data/nai3/img"
     smms_api_url: str = "https://sm.ms/api/v2"
-    smms_token: str = None
+    smms_token: str = "xxx"
 
 
 nai3_config = get_plugin_config(Config)

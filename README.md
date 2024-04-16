@@ -77,7 +77,7 @@
 | nai3_save | 否 | bool | False | 是否将用户生成的图片保存 |
 | nai3_save_path | 否 | str | "./data/nai3/img" | 图片保存位置 |
 | SMMS_API_URL | 否 | str | "https://sm.ms/api/v2" | SMMS 图床 API 地址 |
-| SMMS_TOKEN | 否 | str | None | 不配置将损失一张 R18 图片(bushi) |
+| SMMS_TOKEN | 是 | str | "xxx" | 不配置将损失一张 R18 图片(bushi) |
 
 ⚠️ token 的获取:
 

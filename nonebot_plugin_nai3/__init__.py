@@ -88,7 +88,6 @@ cd = {}
 
 @nai3.handle()
 async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs()):
-
     # 获取群号和 QQ 号
     if isinstance(event, PrivateMessageEvent):
         gid = uid = str(event.user_id)
@@ -228,7 +227,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                         safe = "R18"
                 if safe == "R18":
                     await nai3.send("图片已生成, 但检测到 R18 内容! 不可以涩涩!! 脑积水要告诉主人去!!!", at_sender=True)
-                    if nai3_config.smms_token:
+                    if nai3_config.smms_token and nai3_config.smms_token != "xxx":
                         file = await smms.upload(Path("./data/nai3/temp.png"))
                         if nai3_config.nai3_send_to_group:
                             await nai3.send(f"只..只许这一次给你看看好啦!\n{file.url}", at_sender=True)
