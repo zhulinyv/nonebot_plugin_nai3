@@ -37,6 +37,8 @@ require("nonebot_plugin_smms")
 from nonebot_plugin_smms import SMMS  # noqa: E402, F401
 
 ADMIN = SUPERUSER | GROUP_ADMIN | GROUP_OWNER
+nude_detector = NudeDetector()
+smms = SMMS()
 
 try:
     __version__ = version("nonebot_plugin_nai3")
@@ -86,9 +88,6 @@ cd = {}
 
 @nai3.handle()
 async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs()):
-    # noneflow 加载报错, 移至这里实例化
-    nude_detector = NudeDetector()
-    smms = SMMS()
 
     # 获取群号和 QQ 号
     if isinstance(event, PrivateMessageEvent):
