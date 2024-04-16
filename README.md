@@ -66,15 +66,15 @@
 
 | 配置项 | 必填 | 类型 | 默认值 | 说明 |
 |:-----:|:----:|:----:|:----:|:----:|
-| nai3_token | 是 | str | xxx | 请求头中必需的 token |
-| nai3_negative | 否 | str | nsfw,... | 负面提示词 |
+| nai3_token | 是 | str | "xxx" | 请求头中必需的 token |
+| nai3_negative | 否 | str | "nsfw,..." | 负面提示词 |
 | nai3_limit | 否 | int | 10 | 每人最多生成次数 |
 | nai3_cooltime_group | 否 | int | 30 | 群聊画图冷却时间(单位: 秒) |
 | nai3_cooltime_user | 否 | int | 300 | 个人画图冷却时间(单位: 秒) |
 | nai3_proxy | 否 | str | None | post 请求生成图片使用的代理 |
 | nai3_r18 | 否 | bool | False | 是否允许 R18 图片(False 将会把图片链接发给超级用户) |
 | nai3_send_to_group | 否 | bool | True | 是否允许将图片链接发送到群 |
-| nai3_save | 否 | bool | "./data/nai3/img" | 是否将用户生成的图片保存 |
+| nai3_save | 否 | bool | False | 是否将用户生成的图片保存 |
 | nai3_save_path | 否 | str | "./data/nai3/img" | 图片保存位置 |
 | SMMS_API_URL | 否 | str | "https://sm.ms/api/v2" | SMMS 图床 API 地址 |
 | SMMS_TOKEN | 否 | str | None | 不配置将损失一张 R18 图片(bushi) |
