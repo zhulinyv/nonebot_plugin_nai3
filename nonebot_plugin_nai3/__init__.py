@@ -6,6 +6,7 @@ import shutil
 import time
 import zipfile
 from argparse import Namespace
+from datetime import date
 from importlib.metadata import version
 from pathlib import Path
 
@@ -112,10 +113,14 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     # 更新冷却时间和次数
     now_time = time.time()
     try:
-        cd[gid]["user"][uid]["limit"]
+        cd[gid]
     except KeyError:
         cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {}}
+    try:
+        cd[gid]["user"][uid]
+    except KeyError:
         cd[gid]["user"][uid] = {
+            "date": date.today(),
             "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
             "cool_time": now_time - nai3_config.nai3_cooltime_user,
         }
@@ -138,8 +143,11 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                 ),
                 at_sender=True,
             )
-        if cd[gid]["user"][uid]["limit"] <= 0:
+        if (cd[gid]["user"][uid]["limit"] <= 0) and (cd[gid]["user"][uid]["date"] == date.today()):
             await nai3.finish("今天已经没次数了哦~", at_send=True)
+        else:
+            cd[gid]["user"][uid]["date"] == date.today()
+            cd[gid]["user"][uid]["limit"] == nai3_config.nai3_limit
 
     await nai3.send(
         "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True
