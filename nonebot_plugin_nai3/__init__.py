@@ -114,14 +114,10 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     try:
         cd[gid]["user"][uid]["limit"]
     except KeyError:
-        cd[gid] = {
-            "cool_time": now_time - nai3_config.nai3_cooltime_group,
-        }
-        cd[gid]["user"] = {
-            uid: {
-                "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
-                "cool_time": now_time - nai3_config.nai3_cooltime_user,
-            }
+        cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {}}
+        cd[gid]["user"][uid] = {
+            "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
+            "cool_time": now_time - nai3_config.nai3_cooltime_user,
         }
 
     # 判断冷却时间并阻断
@@ -239,7 +235,7 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                                     "user_id": superuser,
                                 },
                             )
-                            asyncio.sleep(1)
+                            await asyncio.sleep(1)
                     return
             await nai3.send(f"种子: {seed}\n" + MessageSegment.image(Path("./data/nai3/temp.png")), at_sender=True)
             return
