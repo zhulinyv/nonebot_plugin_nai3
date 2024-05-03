@@ -116,12 +116,12 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     except KeyError:
         cd[gid] = {
             "cool_time": now_time - nai3_config.nai3_cooltime_group,
-            "user": {
-                uid: {
-                    "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
-                    "cool_time": now_time - nai3_config.nai3_cooltime_user,
-                }
-            },
+        }
+        cd[gid]["user"] = {
+            uid: {
+                "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
+                "cool_time": now_time - nai3_config.nai3_cooltime_user,
+            }
         }
 
     # 判断冷却时间并阻断
