@@ -84,7 +84,7 @@ nai3_black = on_command(
 )
 nai3_help = on_command("nai3帮助", aliases={"nai3 帮助", "nai帮助", "nai 帮助"}, priority=25, block=True)
 
-cd = {}
+cd = {"group": {}, "user": {}}
 
 
 @nai3.handle()
@@ -113,13 +113,13 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     # 更新冷却时间和次数
     now_time = time.time()
     try:
-        cd[gid]
+        cd["group"][gid]
     except KeyError:
-        cd[gid] = {"cool_time": now_time - nai3_config.nai3_cooltime_group, "user": {}}
+        cd["group"][gid] = now_time - nai3_config.nai3_cooltime_group
     try:
-        cd[gid]["user"][uid]
+        cd["user"][uid]
     except KeyError:
-        cd[gid]["user"][uid] = {
+        cd["user"][uid] = {
             "date": date.today(),
             "limit": 999 if event.get_user_id() in bot.config.superusers else nai3_config.nai3_limit,
             "cool_time": now_time - nai3_config.nai3_cooltime_user,
@@ -129,28 +129,29 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
     if event.get_user_id() not in bot.config.superusers:
         logger.debug(event.get_user_id())
         logger.debug(bot.config.superusers)
-        if now_time - cd[gid]["cool_time"] < nai3_config.nai3_cooltime_group:
+        if now_time - cd["group"][gid] < nai3_config.nai3_cooltime_group:
             await nai3.finish(
                 "群聊绘画冷却中, 剩余时间: {} 秒...".format(
-                    round(nai3_config.nai3_cooltime_group - now_time + cd[gid]["cool_time"], 3)
+                    round(nai3_config.nai3_cooltime_group - now_time + cd["group"][gid], 3)
                 ),
                 at_sender=True,
             )
-        if now_time - cd[gid]["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
+        if now_time - cd["user"][uid]["cool_time"] < nai3_config.nai3_cooltime_user:
             await nai3.finish(
                 "个人绘画冷却中, 剩余时间: {} 秒...".format(
-                    round(nai3_config.nai3_cooltime_user - now_time + cd[gid]["cool_time"], 3)
+                    round(nai3_config.nai3_cooltime_user - now_time + cd["user"][uid]["cool_time"], 3)
                 ),
                 at_sender=True,
             )
-        if (cd[gid]["user"][uid]["limit"] <= 0) and (cd[gid]["user"][uid]["date"] == date.today()):
-            await nai3.finish("今天已经没次数了哦~", at_send=True)
-        else:
-            cd[gid]["user"][uid]["date"] == date.today()
-            cd[gid]["user"][uid]["limit"] == nai3_config.nai3_limit
+        if cd["user"][uid]["limit"] <= 0:
+            if cd["user"][uid]["date"] == date.today():
+                await nai3.finish("今天已经没次数了哦~", at_send=True)
+            else:
+                cd["user"][uid]["date"] = date.today()
+                cd["user"][uid]["limit"] == nai3_config.nai3_limit
 
     await nai3.send(
-        "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd[gid]["user"][uid]["limit"]), at_sender=True
+        "脑积水已收到绘画指令, 正在生成图片(剩余次数: {})...".format(cd["user"][uid]["limit"]), at_sender=True
     )
 
     # 组装 json 数据
@@ -185,8 +186,8 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
 
     # 更新用户 CD
     now_time = time.time()
-    cd[gid]["cool_time"] = now_time
-    cd[gid]["user"][uid]["cool_time"] = now_time
+    cd["group"][gid] = now_time
+    cd["user"][uid]["cool_time"] = now_time
 
     try:
         # 生成图片
@@ -212,8 +213,8 @@ async def _(bot: Bot, event: MessageEvent, args: Namespace = ShellCommandArgs())
                     os.makedirs(nai3_config.nai3_save_path)
                 shutil.copyfile("./data/nai3/temp.png", Path(nai3_config.nai3_save_path) / f"{seed}.png")
 
-            cd[gid]["user"][uid]["limit"] = (
-                999 if event.get_user_id() in bot.config.superusers else cd[gid]["user"][uid]["limit"] - 1
+            cd["user"][uid]["limit"] = (
+                999 if event.get_user_id() in bot.config.superusers else cd["user"][uid]["limit"] - 1
             )
 
             # 检测 R18
