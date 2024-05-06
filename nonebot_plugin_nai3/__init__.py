@@ -312,6 +312,7 @@ prompt          提示词(支持你喜欢的画风串), 默认: None
     )
     message_list.append(MessageSegment.image("https://github.com/zhulinyv/nonebot_plugin_nai3/raw/main/img/2.png"))
     message_list.append("指令: nai3帮助\n返回: 展示以上帮助")
+    message_list.append("本插件逐步迁移自: https://github.com/zhulinyv/Semi-Auto-NovelAI-to-Pixiv")
     if isinstance(event, GroupMessageEvent):
         for msg in message_list:
             msgs.append({"type": "node", "data": {"name": "脑积水", "uin": bot.self_id, "content": msg}})
